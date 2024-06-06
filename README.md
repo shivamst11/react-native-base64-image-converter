@@ -4,8 +4,9 @@ library
 
 ## Installation
 
-```sh
-npm install react-native-base64-image-converter
+```bash
+yarn add react-native-base64-image-converter
+cd ios && pod install
 ```
 
 ## Usage
