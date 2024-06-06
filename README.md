@@ -11,11 +11,11 @@ npm install react-native-base64-image-converter
 ## Usage
 
 ```js
-import { multiply } from 'react-native-base64-image-converter';
+import { imageToBase64 } from 'react-native-base64-image-converter';
 
 // ...
 
-const result = await multiply(3, 7);
+const result = imageToBase64(`file://imagepath`);
 ```
 
 ## Contributing
