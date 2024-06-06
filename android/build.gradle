@@ -1,3 +1,6 @@
+import java.nio.file.Paths
+import com.android.Version
+
 buildscript {
   repositories {
     google()
@@ -36,6 +39,29 @@ def supportsNamespace() {
   return (major == 7 && minor >= 3) || major >= 8
 }
 
+def reactNativeArchitectures() {
+  def value = project.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+}
+
+static def findNodeModules(baseDir) {
+  def basePath = baseDir.toPath().normalize()
+  // Node"s module resolution algorithm searches up to the root directory,
+  // after which the base path will be null
+  while (basePath) {
+    def nodeModulesPath = Paths.get(basePath.toString(), "node_modules")
+    def reactNativePath = Paths.get(nodeModulesPath.toString(), "react-native")
+    if (nodeModulesPath.toFile().exists() && reactNativePath.toFile().exists()) {
+      return nodeModulesPath.toString()
+    }
+    basePath = basePath.getParent()
+  }
+  throw new GradleException("react-native-vision-camera: Failed to find node_modules/ path!")
+}
+
+def nodeModules = findNodeModules(projectDir)
+logger.warn("[VisionCamera] node_modules found at $nodeModules")
+
 android {
   if (supportsNamespace()) {
     namespace "com.base64imageconverter"
@@ -54,17 +80,31 @@ android {
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
 
-    externalNativeBuild {
-      cmake {
-        cppFlags "-O2 -frtti -fexceptions -Wall -fstack-protector-all"
-      }
+     externalNativeBuild {
+       cmake {
+         cppFlags "-O2 -frtti -fexceptions -Wall -Wno-unused-variable -fstack-protector-all"
+         abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+         arguments "-DANDROID_STL=c++_shared",
+           "-DNODE_MODULES_DIR=${nodeModules}"
+
+
+       }
     }
+
+
+  }
+
+  buildFeatures {
+    prefab=true // add this
   }
 
   externalNativeBuild {
     cmake {
       path "CMakeLists.txt"
     }
+  }
+  packagingOptions {
+    excludes = ["**/libc++_shared.so","**/libjsi.so","**/libreactnativejni.so","META-INF/MANIFEST.MF"]
   }
 
   buildTypes {
@@ -78,8 +118,8 @@ android {
   }
 
   compileOptions {
-    sourceCompatibility JavaVersion.VERSION_1_8
-    targetCompatibility JavaVersion.VERSION_1_8
+    sourceCompatibility JavaVersion.VERSION_1_7
+    targetCompatibility JavaVersion.VERSION_1_7
   }
 }
 
@@ -93,6 +133,7 @@ dependencies {
   // For < 0.71, this will be from the local maven repo
   // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin
   //noinspection GradleDynamicVersion
-  implementation "com.facebook.react:react-native:+"
+ implementation "com.facebook.react:react-android:+"
+  // implementation "com.facebook.react:react-native:+"
 }
 
